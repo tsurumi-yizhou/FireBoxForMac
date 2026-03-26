@@ -12,6 +12,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.3"
+
+      - name: Print Toolchain Versions
+        run: |
+          xcodebuild -version
+          xcrun swift --version
+
       - name: Setup Tuist
         run: |
           brew install tuist
@@ -20,9 +30,27 @@ jobs:
       - name: Build Release
         run: |
           set -euo pipefail
-          xcodebuild -scheme App -configuration Release -derivedDataPath build/DerivedData
-          xcodebuild -scheme Demo -configuration Release -derivedDataPath build/DerivedData
-          xcodebuild -scheme Service -configuration Release -derivedDataPath build/DerivedData
+          mkdir -p build/logs
+
+          build_scheme() {
+            local scheme="$1"
+            local log_file="build/logs/${scheme}.log"
+
+            if ! xcodebuild \
+              -scheme "${scheme}" \
+              -configuration Release \
+              -derivedDataPath build/DerivedData \
+              2>&1 | tee "${log_file}"; then
+              echo "Build failed for scheme: ${scheme}"
+              echo "Extracted diagnostics from ${log_file}:"
+              grep -nE "error:|\\*\\* BUILD FAILED \\*\\*|CompileSwift|SwiftCompile|Command SwiftCompile failed" "${log_file}" || true
+              exit 1
+            fi
+          }
+
+          build_scheme App
+          build_scheme Demo
+          build_scheme Service
 
       - name: Package FireBox.pkg
         run: |
