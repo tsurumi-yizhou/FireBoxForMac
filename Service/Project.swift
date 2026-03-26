@@ -5,7 +5,7 @@ let project = Project(
     packages: [
         .remote(
             url: "https://github.com/teunlao/swift-ai-sdk",
-            requirement: .exact("0.9.1")
+            requirement: .exact("0.10.0")
         ),
     ],
     targets: [
@@ -24,6 +24,7 @@ let project = Project(
                 .package(product: "GoogleProvider"),
                 .sdk(name: "SwiftData", type: .framework, status: .required),
                 .sdk(name: "CloudKit", type: .framework, status: .required),
+                .sdk(name: "Security", type: .framework, status: .required),
             ],
             settings: .settings(
                 base: [

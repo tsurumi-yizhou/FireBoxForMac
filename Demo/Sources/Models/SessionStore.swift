@@ -1,4 +1,5 @@
 import Foundation
+import Client
 
 // MARK: - JSONL Wire Types
 
@@ -11,6 +12,7 @@ struct SessionHeaderRecord: Codable {
     let sessionId: String
     var title: String
     var modelId: String?
+    var reasoningEffortRawValue: Int32?
     let createdAt: String // ISO-8601
     var updatedAt: String
 
@@ -19,6 +21,7 @@ struct SessionHeaderRecord: Codable {
         self.sessionId = session.id.uuidString
         self.title = session.title
         self.modelId = session.selectedModel?.modelId
+        self.reasoningEffortRawValue = session.selectedReasoningEffort.rawValue
         self.createdAt = ISO8601DateFormatter().string(from: Date())
         self.updatedAt = self.createdAt
     }
@@ -30,6 +33,8 @@ struct MessageRecord: Codable {
     let role: String // "user" | "assistant"
     let content: String
     let hasImage: Bool
+    let imageDataList: [Data]?
+    let imageData: Data?
     let timestamp: String
 
     init(message: ChatMessage) {
@@ -37,7 +42,10 @@ struct MessageRecord: Codable {
         self.messageId = message.id.uuidString
         self.role = message.role.rawValue
         self.content = message.content
-        self.hasImage = message.imageData != nil
+        self.hasImage = !message.imageDataList.isEmpty
+        self.imageDataList = message.imageDataList.isEmpty ? nil : message.imageDataList
+        // Legacy single-image field kept for backward compatibility.
+        self.imageData = message.imageDataList.first
         self.timestamp = ISO8601DateFormatter().string(from: Date())
     }
 }
@@ -167,6 +175,7 @@ actor SessionStore {
         }
 
         let model = availableModels.first { $0.modelId == header.modelId }
+        let reasoningEffort = Client.ReasoningEffort(rawValue: header.reasoningEffortRawValue ?? 0) ?? .default
 
         var messages: [ChatMessage] = []
         for line in lines.dropFirst() {
@@ -176,11 +185,19 @@ actor SessionStore {
                 continue
             }
             let role: MessageRole = record.role == "assistant" ? .assistant : .user
+            let imageDataList: [Data]
+            if let list = record.imageDataList, !list.isEmpty {
+                imageDataList = list
+            } else if let single = record.imageData {
+                imageDataList = [single]
+            } else {
+                imageDataList = []
+            }
             let msg = ChatMessage(
                 id: UUID(uuidString: record.messageId) ?? UUID(),
                 role: role,
-                content: record.content
-                // Note: image data is not persisted (binary); only the flag is stored
+                content: record.content,
+                imageDataList: imageDataList
             )
             messages.append(msg)
         }
@@ -189,7 +206,8 @@ actor SessionStore {
             id: sessionUUID,
             title: header.title,
             messages: messages,
-            selectedModel: model
+            selectedModel: model,
+            selectedReasoningEffort: reasoningEffort
         )
     }
 }

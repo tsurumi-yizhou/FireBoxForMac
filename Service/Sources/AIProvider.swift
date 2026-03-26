@@ -97,9 +97,48 @@ struct XPCCaller: Sendable, Hashable {
     var euid: UInt32
     var egid: UInt32
     var auditSession: Int32
+    var codeSigningIdentifier: String?
+    var codeSigningTeamIdentifier: String?
+    var codeSigningUnique: String?
+    var executablePath: String?
+
+    static func == (lhs: XPCCaller, rhs: XPCCaller) -> Bool {
+        lhs.pid == rhs.pid &&
+        lhs.euid == rhs.euid &&
+        lhs.egid == rhs.egid &&
+        lhs.auditSession == rhs.auditSession
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(pid)
+        hasher.combine(euid)
+        hasher.combine(egid)
+        hasher.combine(auditSession)
+    }
 
     var identityKey: String {
-        "audit:\(auditSession):uid:\(euid):pid:\(pid)"
+        if let identifier = normalized(codeSigningIdentifier) {
+            if let team = normalized(codeSigningTeamIdentifier) {
+                // Stable across restarts and normal app upgrades for properly signed apps.
+                return "codesign:v3:uid:\(euid):team:\(team):id:\(identifier)"
+            }
+            if let unique = normalized(codeSigningUnique) {
+                // For ad-hoc or incomplete signatures, include a code-unique fallback.
+                return "codesign:v3:uid:\(euid):id:\(identifier):unique:\(unique)"
+            }
+            return "codesign:v3:uid:\(euid):id:\(identifier)"
+        }
+
+        if let unique = normalized(codeSigningUnique) {
+            return "codesign:v3:uid:\(euid):unique:\(unique)"
+        }
+
+        if let path = normalized(executablePath) {
+            return "path:v1:uid:\(euid):gid:\(egid):exe:\(path)"
+        }
+
+        // Last-resort fallback keeps persistence across process restarts.
+        return "legacy:v1:uid:\(euid):gid:\(egid)"
     }
 
     var dictionary: NSDictionary {
@@ -109,6 +148,12 @@ struct XPCCaller: Sendable, Hashable {
             "egid": egid,
             "auditSession": auditSession,
         ] as NSDictionary
+    }
+
+    private func normalized(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

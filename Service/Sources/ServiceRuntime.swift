@@ -1,10 +1,93 @@
 import Foundation
 import CoreFoundation
+import Security
 import Shared
 import SwiftAISDK
 import OpenAIProvider
 import AnthropicProvider
 import GoogleProvider
+
+private struct CallerCodeIdentity {
+    var signingIdentifier: String?
+    var teamIdentifier: String?
+    var uniqueHash: String?
+    var executablePath: String?
+}
+
+private func makeXPCCaller(from connection: NSXPCConnection) -> XPCCaller {
+    let pid = Int32(connection.processIdentifier)
+    let codeIdentity = resolveCallerCodeIdentity(pid: pid)
+    return XPCCaller(
+        pid: pid,
+        euid: connection.effectiveUserIdentifier,
+        egid: connection.effectiveGroupIdentifier,
+        auditSession: Int32(connection.auditSessionIdentifier),
+        codeSigningIdentifier: codeIdentity.signingIdentifier,
+        codeSigningTeamIdentifier: codeIdentity.teamIdentifier,
+        codeSigningUnique: codeIdentity.uniqueHash,
+        executablePath: codeIdentity.executablePath
+    )
+}
+
+private func resolveCallerCodeIdentity(pid: Int32) -> CallerCodeIdentity {
+    let attributes: [CFString: Any] = [
+        kSecGuestAttributePid: NSNumber(value: pid),
+    ]
+
+    var code: SecCode?
+    let codeStatus = SecCodeCopyGuestWithAttributes(nil, attributes as CFDictionary, SecCSFlags(), &code)
+    guard codeStatus == errSecSuccess, let code else {
+        return CallerCodeIdentity()
+    }
+
+    var staticCode: SecStaticCode?
+    let staticStatus = SecCodeCopyStaticCode(code, SecCSFlags(), &staticCode)
+    guard staticStatus == errSecSuccess, let staticCode else {
+        return CallerCodeIdentity()
+    }
+
+    var executablePath: String?
+    var pathRef: CFURL?
+    if SecCodeCopyPath(staticCode, SecCSFlags(), &pathRef) == errSecSuccess, let pathRef {
+        executablePath = (pathRef as URL).path
+    }
+
+    var signingIdentifier: String?
+    var teamIdentifier: String?
+    var uniqueHash: String?
+    var informationRef: CFDictionary?
+    let informationFlags = SecCSFlags(rawValue: kSecCSSigningInformation)
+    if SecCodeCopySigningInformation(staticCode, informationFlags, &informationRef) == errSecSuccess,
+       let informationRef,
+       let information = informationRef as? [String: Any]
+    {
+        signingIdentifier = information[kSecCodeInfoIdentifier as String] as? String
+        teamIdentifier = information[kSecCodeInfoTeamIdentifier as String] as? String
+
+        if let uniqueData = information[kSecCodeInfoUnique as String] as? Data {
+            uniqueHash = uniqueData.hexEncodedString()
+        } else if let uniqueData = information[kSecCodeInfoUnique as String] as? NSData {
+            uniqueHash = (uniqueData as Data).hexEncodedString()
+        }
+
+        if executablePath == nil, let mainExecutable = information[kSecCodeInfoMainExecutable as String] as? URL {
+            executablePath = mainExecutable.path
+        }
+    }
+
+    return CallerCodeIdentity(
+        signingIdentifier: signingIdentifier,
+        teamIdentifier: teamIdentifier,
+        uniqueHash: uniqueHash,
+        executablePath: executablePath
+    )
+}
+
+private extension Data {
+    func hexEncodedString() -> String {
+        map { String(format: "%02x", $0) }.joined()
+    }
+}
 
 final class ServiceDelegate: NSObject, NSXPCListenerDelegate {
     private let service: Service
@@ -14,12 +97,7 @@ final class ServiceDelegate: NSObject, NSXPCListenerDelegate {
     }
 
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection newConnection: NSXPCConnection) -> Bool {
-        let caller = XPCCaller(
-            pid: Int32(newConnection.processIdentifier),
-            euid: newConnection.effectiveUserIdentifier,
-            egid: newConnection.effectiveGroupIdentifier,
-            auditSession: Int32(newConnection.auditSessionIdentifier)
-        )
+        let caller = makeXPCCaller(from: newConnection)
         let connectionID = service.registerConnection(caller: caller)
 
         newConnection.exportedInterface = XPCInterfaceFactory.makeServiceInterface()
@@ -924,7 +1002,8 @@ final class Service: NSObject, ServiceProtocol {
 
     private func promptForAccess(caller: XPCCaller) -> Bool {
         let title = "FireBox Authorization Request" as CFString
-        let message = "Allow XPC caller audit:\(caller.auditSession) pid:\(caller.pid) uid:\(caller.euid) to use FireBox?" as CFString
+        let identity = caller.codeSigningIdentifier ?? caller.executablePath ?? "uid:\(caller.euid)"
+        let message = "Allow XPC caller \(identity) pid:\(caller.pid) uid:\(caller.euid) to use FireBox?" as CFString
         var responseFlags: CFOptionFlags = 0
         let status = CFUserNotificationDisplayAlert(
             0,
@@ -1525,12 +1604,7 @@ final class Service: NSObject, ServiceProtocol {
         guard let connection = NSXPCConnection.current() else {
             return nil
         }
-        return XPCCaller(
-            pid: Int32(connection.processIdentifier),
-            euid: connection.effectiveUserIdentifier,
-            egid: connection.effectiveGroupIdentifier,
-            auditSession: Int32(connection.auditSessionIdentifier)
-        )
+        return makeXPCCaller(from: connection)
     }
 
     private static func responseEnvelope(_ response: NSDictionary) -> NSDictionary {

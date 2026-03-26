@@ -1,5 +1,5 @@
 import SwiftUI
-import Textual
+import Client
 
 struct ChatView: View {
     @Bindable var state: DemoState
@@ -7,11 +7,15 @@ struct ChatView: View {
     var availableModels: [ModelOption]
 
     @State private var inputText = ""
-    @State private var attachedImageData: Data?
+    @State private var attachedImageDataList: [Data] = []
     @State private var showingFilePicker = false
 
     private var currentModelSupportsImage: Bool {
         session.selectedModel?.supportsImageInput ?? false
+    }
+
+    private var currentModelSupportsReasoning: Bool {
+        session.selectedModel?.supportsReasoning ?? false
     }
 
     private var hasActiveStream: Bool {
@@ -36,6 +40,16 @@ struct ChatView: View {
                 }
                 .frame(minWidth: 200)
             }
+            ToolbarItem {
+                Picker("Thinking", selection: $session.selectedReasoningEffort) {
+                    Text("Default").tag(Client.ReasoningEffort.default)
+                    Text("Low").tag(Client.ReasoningEffort.low)
+                    Text("Medium").tag(Client.ReasoningEffort.medium)
+                    Text("High").tag(Client.ReasoningEffort.high)
+                }
+                .frame(minWidth: 130)
+                .disabled(!currentModelSupportsReasoning)
+            }
             if hasActiveStream {
                 ToolbarItem {
                     Button("demo.chat.stop") {
@@ -49,18 +63,29 @@ struct ChatView: View {
         .navigationTitle(session.title)
         .onChange(of: session.selectedModel) {
             if !currentModelSupportsImage {
-                attachedImageData = nil
+                attachedImageDataList.removeAll()
+            }
+            if !currentModelSupportsReasoning {
+                session.selectedReasoningEffort = .default
             }
         }
         .fileImporter(
             isPresented: $showingFilePicker,
             allowedContentTypes: [.image],
-            allowsMultipleSelection: false
+            allowsMultipleSelection: true
         ) { result in
-            if case .success(let urls) = result, let url = urls.first {
-                if url.startAccessingSecurityScopedResource() {
-                    attachedImageData = try? Data(contentsOf: url)
-                    url.stopAccessingSecurityScopedResource()
+            if case .success(let urls) = result {
+                var loaded: [Data] = []
+                for url in urls {
+                    if url.startAccessingSecurityScopedResource() {
+                        if let data = try? Data(contentsOf: url) {
+                            loaded.append(data)
+                        }
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+                if !loaded.isEmpty {
+                    attachedImageDataList.append(contentsOf: loaded)
                 }
             }
         }
@@ -124,18 +149,32 @@ struct ChatView: View {
 
     private var inputBar: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let imageData = attachedImageData, let nsImage = NSImage(data: imageData) {
-                HStack(spacing: 6) {
-                    Image(nsImage: nsImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxHeight: 52)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                    Button(action: { self.attachedImageData = nil }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+            if !attachedImageDataList.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(attachedImageDataList.enumerated()), id: \.offset) { index, imageData in
+                            if let nsImage = NSImage(data: imageData) {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(nsImage: nsImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 56, height: 56)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    Button(action: {
+                                        if attachedImageDataList.indices.contains(index) {
+                                            attachedImageDataList.remove(at: index)
+                                        }
+                                    }) {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .background(.background, in: Circle())
+                                    .offset(x: 6, y: -6)
+                                }
+                            }
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
             }
 
@@ -163,12 +202,12 @@ struct ChatView: View {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 24))
                         .foregroundStyle(
-                            (inputText.isEmpty && attachedImageData == nil) || hasActiveStream
+                            (inputText.isEmpty && attachedImageDataList.isEmpty) || hasActiveStream
                                 ? Color.secondary : Color.accentColor
                         )
                 }
                 .buttonStyle(.plain)
-                .disabled((inputText.isEmpty && attachedImageData == nil) || hasActiveStream)
+                .disabled((inputText.isEmpty && attachedImageDataList.isEmpty) || hasActiveStream)
                 .padding(.bottom, 1)
             }
         }
@@ -179,15 +218,15 @@ struct ChatView: View {
     // MARK: - Actions
 
     private func sendMessage() {
-        guard !inputText.isEmpty || attachedImageData != nil else { return }
+        guard !inputText.isEmpty || !attachedImageDataList.isEmpty else { return }
 
         let text = inputText
-        let imageData = attachedImageData
+        let imageDataList = attachedImageDataList
         inputText = ""
-        attachedImageData = nil
+        attachedImageDataList.removeAll()
 
         Task {
-            await state.sendMessage(sessionId: session.id, text: text, imageData: imageData)
+            await state.sendMessage(sessionId: session.id, text: text, imageDataList: imageDataList)
         }
     }
 }
@@ -200,12 +239,8 @@ private struct MessageRow: View {
     private var isUser: Bool { message.role == .user }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top) {
             if isUser { Spacer(minLength: 60) }
-
-            if !isUser {
-                avatar
-            }
 
             VStack(alignment: isUser ? .trailing : .leading, spacing: 4) {
                 bubble
@@ -215,48 +250,43 @@ private struct MessageRow: View {
                 }
             }
 
-            if isUser {
-                avatar
-            }
-
             if !isUser { Spacer(minLength: 60) }
         }
         .padding(.vertical, 4)
     }
 
-    private var avatar: some View {
-        Image(systemName: isUser ? "person.circle.fill" : "cpu.fill")
-            .font(.system(size: 22))
-            .foregroundStyle(isUser ? .blue : .secondary)
-            .frame(width: 28, height: 28)
-            .padding(.top, 2)
-    }
-
     @ViewBuilder
     private var bubble: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let imageData = message.imageData, let nsImage = NSImage(data: imageData) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxHeight: 160)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            ForEach(Array(message.imageDataList.enumerated()), id: \.offset) { _, imageData in
+                if let nsImage = NSImage(data: imageData) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxHeight: 160)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
             }
 
             if !message.content.isEmpty {
                 if !isUser && !message.isStreaming {
-                    StructuredText(markdown: message.content)
-                        .textSelection(.enabled)
+                    if let attributed = try? AttributedString(markdown: message.content) {
+                        Text(attributed)
+                    } else {
+                        Text(message.content)
+                    }
                 } else {
                     Text(message.content)
-                        .textSelection(.enabled)
                 }
             }
         }
+        .textSelection(.enabled)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(isUser ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(isUser ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.04))
+        )
     }
 
     private var streamingIndicator: some View {
