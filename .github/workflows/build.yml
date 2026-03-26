@@ -1,0 +1,112 @@
+name: Build
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Tuist
+        run: |
+          brew install tuist
+          tuist generate
+
+      - name: Build Release
+        run: |
+          set -euo pipefail
+          xcodebuild -scheme App -configuration Release -derivedDataPath build/DerivedData
+          xcodebuild -scheme Demo -configuration Release -derivedDataPath build/DerivedData
+          xcodebuild -scheme Service -configuration Release -derivedDataPath build/DerivedData
+
+      - name: Package FireBox.pkg
+        run: |
+          set -euo pipefail
+          DERIVED_DATA_PATH="build/DerivedData"
+          OUTPUT_DIR="build"
+          VERSION="${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '1.0.0' }}"
+
+          PAYLOAD_DIR="${OUTPUT_DIR}/pkg/Payload"
+          SCRIPTS_DIR="${OUTPUT_DIR}/pkg/scripts"
+          COMPONENTS_PLIST="${OUTPUT_DIR}/pkg/components.plist"
+          mkdir -p "${PAYLOAD_DIR}/Applications"
+          mkdir -p "${PAYLOAD_DIR}/Library/LaunchAgents"
+          mkdir -p "${PAYLOAD_DIR}/Library/Application Support/FireBox/Service/Frameworks"
+          mkdir -p "${SCRIPTS_DIR}"
+
+          cp -R "${DERIVED_DATA_PATH}/Build/Products/Release/FireBox.app" "${PAYLOAD_DIR}/Applications/FireBox.app"
+
+          cp "${DERIVED_DATA_PATH}/Build/Products/Release/Service" "${PAYLOAD_DIR}/Library/Application Support/FireBox/Service/Service"
+          cp -R "${DERIVED_DATA_PATH}/Build/Products/Release/Shared.framework" "${PAYLOAD_DIR}/Library/Application Support/FireBox/Service/Frameworks/"
+          chmod 755 "${PAYLOAD_DIR}/Library/Application Support/FireBox/Service/Service"
+
+          cp "App/Resources/LaunchAgents/com.firebox.service.plist" "${PAYLOAD_DIR}/Library/LaunchAgents/"
+          cp "App/Package/postinstall" "${SCRIPTS_DIR}/postinstall"
+          chmod 755 "${SCRIPTS_DIR}/postinstall"
+          pkgbuild --analyze --root "${PAYLOAD_DIR}" "${COMPONENTS_PLIST}"
+          /usr/libexec/PlistBuddy -c "Set :1:BundleIsRelocatable false" "${COMPONENTS_PLIST}"
+
+          pkgbuild --root "${PAYLOAD_DIR}" \
+                   --component-plist "${COMPONENTS_PLIST}" \
+                   --identifier com.firebox.app \
+                   --version "${VERSION}" \
+                   --scripts "${SCRIPTS_DIR}" \
+                   --install-location / \
+                   "${OUTPUT_DIR}/FireBox.pkg"
+
+      - name: Package Demo.dmg
+        run: |
+          set -euo pipefail
+          DERIVED_DATA_PATH="build/DerivedData"
+          OUTPUT_DIR="build"
+          VERSION="${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '1.0.0' }}"
+
+          DMG_NAME="Demo.dmg"
+          DMG_PATH="${OUTPUT_DIR}/${DMG_NAME}"
+          TEMP_DIR="${OUTPUT_DIR}/dmg_temp"
+
+          mkdir -p "${TEMP_DIR}"
+          cp -R "${DERIVED_DATA_PATH}/Build/Products/Release/Demo.app" "${TEMP_DIR}/FireBox Demo.app"
+          ln -s /Applications "${TEMP_DIR}/Applications"
+
+          hdiutil create -volname "FireBox Demo" \
+                         -srcfolder "${TEMP_DIR}" \
+                         -ov -format UDZO \
+                         "${DMG_PATH}"
+
+          rm -rf "${TEMP_DIR}"
+
+      - name: Package SDK.zip
+        run: |
+          set -euo pipefail
+          DERIVED_DATA_PATH="build/DerivedData"
+          OUTPUT_DIR="build"
+
+          SDK_DIR="${OUTPUT_DIR}/sdk/FireBoxClient"
+          mkdir -p "${SDK_DIR}/Sources"
+
+          cp -R "${DERIVED_DATA_PATH}/Build/Products/Release/Client.framework" "${SDK_DIR}/"
+          cp -R "${DERIVED_DATA_PATH}/Build/Products/Release/Shared.framework" "${SDK_DIR}/"
+
+          cp "Client/Package.swift" "${SDK_DIR}/"
+          cp -R "Client/Sources/"* "${SDK_DIR}/Sources/"
+
+          cd "${OUTPUT_DIR}/sdk"
+          zip -r "../SDK.zip" FireBoxClient
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/FireBox.pkg
+            build/Demo.dmg
+            build/SDK.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

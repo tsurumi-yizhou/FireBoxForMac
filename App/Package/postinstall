@@ -1,0 +1,52 @@
+#!/bin/bash
+set -euo pipefail
+
+LABEL="com.firebox.service"
+SYSTEM_PLIST="/Library/LaunchAgents/${LABEL}.plist"
+
+if [[ ! -f "${SYSTEM_PLIST}" ]]; then
+  echo "[postinstall] ERROR: required launch agent plist missing: ${SYSTEM_PLIST}."
+  exit 1
+fi
+
+CONSOLE_USER="$(/usr/bin/stat -f %Su /dev/console 2>/dev/null)"
+if [[ -z "${CONSOLE_USER}" || "${CONSOLE_USER}" == "root" || "${CONSOLE_USER}" == "loginwindow" ]]; then
+  echo "[postinstall] ERROR: no active console user; cannot bootstrap ${LABEL}."
+  exit 1
+fi
+
+USER_UID="$(/usr/bin/id -u "${CONSOLE_USER}" 2>/dev/null)"
+if [[ -z "${USER_UID}" ]]; then
+  echo "[postinstall] ERROR: failed to resolve UID for ${CONSOLE_USER}."
+  exit 1
+fi
+
+DOMAIN="gui/${USER_UID}"
+USER_HOME="$(/usr/bin/dscl . -read "/Users/${CONSOLE_USER}" NFSHomeDirectory | /usr/bin/awk '{print $2}')"
+USER_LAUNCH_AGENTS_DIR="${USER_HOME}/Library/LaunchAgents"
+USER_PLIST="${USER_LAUNCH_AGENTS_DIR}/${LABEL}.plist"
+
+if ! BOOTOUT_OUTPUT=$(/bin/launchctl bootout "${DOMAIN}/${LABEL}" 2>&1); then
+  if [[ "${BOOTOUT_OUTPUT}" != *"Could not find service"* && "${BOOTOUT_OUTPUT}" != *"Boot-out failed: 3: No such process"* ]]; then
+    echo "[postinstall] ERROR: launchctl bootout failed: ${BOOTOUT_OUTPUT}."
+    exit 1
+  fi
+fi
+if [[ -f "${USER_PLIST}" ]]; then
+  /bin/rm -f "${USER_PLIST}"
+  echo "[postinstall] removed stale user launch agent: ${USER_PLIST}."
+fi
+/bin/mkdir -p "${USER_LAUNCH_AGENTS_DIR}"
+/usr/sbin/chown "${CONSOLE_USER}:staff" "${USER_LAUNCH_AGENTS_DIR}"
+/bin/cp "${SYSTEM_PLIST}" "${USER_PLIST}"
+/bin/rm -f "${SYSTEM_PLIST}"
+/usr/sbin/chown "${CONSOLE_USER}:staff" "${USER_PLIST}"
+/bin/chmod 644 "${USER_PLIST}"
+
+/bin/launchctl bootstrap "${DOMAIN}" "${USER_PLIST}"
+/bin/launchctl enable "${DOMAIN}/${LABEL}"
+/bin/launchctl kickstart -k "${DOMAIN}/${LABEL}"
+/bin/launchctl print "${DOMAIN}/${LABEL}" >/dev/null 2>&1 || { echo "[postinstall] ERROR: launchctl print failed for ${DOMAIN}/${LABEL}."; exit 1; }
+echo "[postinstall] bootstrapped ${LABEL} for ${CONSOLE_USER} from ${USER_PLIST}."
+
+exit 0

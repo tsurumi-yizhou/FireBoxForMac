@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.firebox.service</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Library/Application Support/FireBox/Service/Service</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>MachServices</key>
+  <dict>
+    <key>com.firebox.service</key>
+    <true/>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/tmp/com.firebox.service.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/com.firebox.service.err</string>
+</dict>
+</plist>

@@ -1,0 +1,588 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "app.about.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "About" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "关于" } }
+      }
+    },
+    "app.about.section.app" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Application" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "应用" } }
+      }
+    },
+    "app.about.name" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Name" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "名称" } }
+      }
+    },
+    "app.about.version" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Version" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "版本" } }
+      }
+    },
+    "app.about.build" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Build" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "构建号" } }
+      }
+    },
+    "app.about.bundleId" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Bundle ID" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Bundle ID" } }
+      }
+    },
+    "app.allowlist.allowed" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Allowed" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "允许" } }
+      }
+    },
+    "app.allowlist.deniedUntil" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Denied Until" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "拒绝至" } }
+      }
+    },
+    "app.allowlist.firstSeen" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "First Seen" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "首次出现" } }
+      }
+    },
+    "app.allowlist.lastSeen" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Last Seen" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "最近出现" } }
+      }
+    },
+    "app.allowlist.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Allowlist" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "访问列表" } }
+      }
+    },
+    "app.caller.friendlyLabel.format" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "audit %d · uid %u · gid %u · pid %d" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "审计会话 %d · uid %u · gid %u · pid %d" } }
+      }
+    },
+    "app.common.audio" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Audio" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "音频" } }
+      }
+    },
+    "app.common.caller" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Caller" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "调用方" } }
+      }
+    },
+    "app.common.cancel" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancel" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消" } }
+      }
+    },
+    "app.common.cost" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cost" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "费用" } }
+      }
+    },
+    "app.common.cost.format" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "$%.4f" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "¥%.4f" } }
+      }
+    },
+    "app.common.delete" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除" } }
+      }
+    },
+    "app.common.image" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Image" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "图像" } }
+      }
+    },
+    "app.common.model" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Model" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "模型" } }
+      }
+    },
+    "app.common.name" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Name" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "名称" } }
+      }
+    },
+    "app.common.no" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "否" } }
+      }
+    },
+    "app.common.none" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "—" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "—" } }
+      }
+    },
+    "app.common.provider" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Provider" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "服务商" } }
+      }
+    },
+    "app.common.refresh" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Refresh" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "刷新" } }
+      }
+    },
+    "app.common.requestCount" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Request Count" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "请求次数" } }
+      }
+    },
+    "app.common.search" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Search" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "搜索" } }
+      }
+    },
+    "app.common.requests" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Requests" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "请求数" } }
+      }
+    },
+    "app.common.save" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "保存" } }
+      }
+    },
+    "app.common.tokens" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tokens" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Token 数" } }
+      }
+    },
+    "app.common.type" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Type" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "类型" } }
+      }
+    },
+    "app.common.video" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Video" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "视频" } }
+      }
+    },
+    "app.common.yes" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Yes" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "是" } }
+      }
+    },
+    "app.connections.activeConnections" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Active Connections" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "活跃连接" } }
+      }
+    },
+    "app.connections.activeStream" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Active Stream" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "活跃流" } }
+      }
+    },
+    "app.connections.connectedAt" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Connected At" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "连接时间" } }
+      }
+    },
+    "app.connections.connectionId" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Connection ID" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "连接 ID" } }
+      }
+    },
+    "app.connections.section.details" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Connection Details" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "连接详情" } }
+      }
+    },
+    "app.connections.section.realtime" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Real-time Connections" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "实时连接" } }
+      }
+    },
+    "app.connections.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Connections" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "连接" } }
+      }
+    },
+    "app.content.selectItem" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Select an item" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "请选择一项" } }
+      }
+    },
+    "app.main.connection.connected" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Service Connected" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "服务已连接" } }
+      }
+    },
+    "app.main.connection.disconnected" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Service Disconnected" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "服务未连接" } }
+      }
+    },
+    "app.dashboard.section.month" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "This Month" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "本月" } }
+      }
+    },
+    "app.dashboard.section.service" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Service" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "服务" } }
+      }
+    },
+    "app.dashboard.section.today" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Today" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "今日" } }
+      }
+    },
+    "app.dashboard.service.connected" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Connected" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已连接" } }
+      }
+    },
+    "app.dashboard.service.disconnected" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Disconnected" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "未连接" } }
+      }
+    },
+    "app.dashboard.service.status" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Status" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "状态" } }
+      }
+    },
+    "app.dashboard.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Dashboard" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "仪表盘" } }
+      }
+    },
+    "app.error.calendarComponents" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Failed to compute calendar date components" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法计算日历日期组件" } }
+      }
+    },
+    "app.error.candidateMissingModel" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Candidate #%d is missing modelName" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "候选项 #%d 缺少 modelName" } }
+      }
+    },
+    "app.error.candidateMissingProvider" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Candidate #%d is missing providerServiceID" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "候选项 #%d 缺少 providerServiceID" } }
+      }
+    },
+    "app.error.routeNeedsCandidate" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Route must include at least one candidate" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "路由必须至少包含一个候选项" } }
+      }
+    },
+    "app.general.quickToolModel" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Quick Tool Model" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "快捷工具模型" } }
+      }
+    },
+    "app.general.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "General" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "通用" } }
+      }
+    },
+    "app.providerType.anthropic" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Anthropic" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Anthropic" } }
+      }
+    },
+    "app.providerType.gemini" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Gemini" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Gemini" } }
+      }
+    },
+    "app.providerType.openAI" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "OpenAI" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "OpenAI" } }
+      }
+    },
+    "app.providers.apiKey" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "API Key" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "API Key" } }
+      }
+    },
+    "app.providers.baseURL" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Base URL" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "基础 URL" } }
+      }
+    },
+    "app.providers.configuredProviders" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Configured Providers" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已配置服务商" } }
+      }
+    },
+    "app.providers.enabledModels" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Enabled Models" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "启用模型" } }
+      }
+    },
+    "app.providers.fetchProviderModels" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Fetch Provider Models" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "获取服务商模型" } }
+      }
+    },
+    "app.providers.newProvider" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New Provider" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "新建服务商" } }
+      }
+    },
+    "app.providers.manualAddModel" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add Model" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加模型" } }
+      }
+    },
+    "app.providers.manualModelName" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Model ID" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "模型 ID" } }
+      }
+    },
+    "app.providers.noModelsLoaded" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No models available. Add one manually or verify provider access." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "暂无可用模型。请手动添加，或检查服务商访问配置。" } }
+      }
+    },
+    "app.providers.noProviders" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No providers configured." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "尚未配置服务商。" } }
+      }
+    },
+    "app.providers.saveEnabledModels" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Enable Models" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "启用模型" } }
+      }
+    },
+    "app.providers.saveProvider" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit Provider" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编辑服务商" } }
+      }
+    },
+    "app.providers.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Providers" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "服务商" } }
+      }
+    },
+    "app.providers.updateApiKeyOnSave" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Update API Key On Save" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "保存时更新 API Key" } }
+      }
+    },
+    "app.routeStrategy.ordered" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Ordered" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "顺序" } }
+      }
+    },
+    "app.routeStrategy.random" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Random" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "随机" } }
+      }
+    },
+    "app.routes.addTarget" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add Target" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加目标" } }
+      }
+    },
+    "app.routes.candidateTargets" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Candidate Targets" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "候选目标" } }
+      }
+    },
+    "app.routes.capabilities" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Capabilities" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "能力" } }
+      }
+    },
+    "app.routes.deleteRule" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete Rule" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除规则" } }
+      }
+    },
+    "app.routes.multimodalInput" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Multimodal Input" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "多模态输入" } }
+      }
+    },
+    "app.routes.multimodalOutput" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Multimodal Output" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "多模态输出" } }
+      }
+    },
+    "app.routes.newRule" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New Route Rule" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "新建路由规则" } }
+      }
+    },
+    "app.routes.noRules" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No route rules configured." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "尚未配置路由规则。" } }
+      }
+    },
+    "app.routes.noEnabledModels" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No enabled models" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无已启用模型" } }
+      }
+    },
+    "app.routes.reasoning" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reasoning" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "推理" } }
+      }
+    },
+    "app.routes.routeID" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Route ID" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "路由 ID" } }
+      }
+    },
+    "app.routes.saveRule" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit Rule" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编辑规则" } }
+      }
+    },
+    "app.routes.strategy" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Strategy" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "策略" } }
+      }
+    },
+    "app.routes.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Route Rules" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "路由规则" } }
+      }
+    },
+    "app.routes.toolCalling" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tool Calling" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "工具调用" } }
+      }
+    },
+    "app.settings.tab.about" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "About" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "关于" } }
+      }
+    },
+    "app.settings.tab.general" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "General" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "通用" } }
+      }
+    },
+    "app.sidebar.allowlist" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Allowlist" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "访问列表" } }
+      }
+    },
+    "app.sidebar.connections" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Connections" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "连接" } }
+      }
+    },
+    "app.sidebar.dashboard" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Dashboard" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "仪表盘" } }
+      }
+    },
+    "app.sidebar.providers" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Providers" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "服务商" } }
+      }
+    },
+    "app.sidebar.routeRules" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Route Rules" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "路由规则" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}
