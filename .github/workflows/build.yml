@@ -11,6 +11,10 @@ permissions:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      DERIVED_DATA_PATH: build/DerivedData
+      SOURCE_PACKAGES_DIR: build/SourcePackages
+      OUTPUT_DIR: build
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -25,57 +29,121 @@ jobs:
           xcodebuild -version
           xcrun swift --version
 
+      - name: Restore Dependency Caches
+        uses: actions/cache@v5
+        with:
+          path: |
+            build/SourcePackages
+            ~/.tuist/Cache
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-xcode26_3-deps-${{ hashFiles('.package.resolved', '**/Package.resolved', 'Tuist.swift', 'Workspace.swift', '**/Project.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode26_3-deps-
+
       - name: Setup Tuist
         run: |
           brew install tuist
           tuist generate
 
-      - name: Build Release
+      - name: Resolve Swift Package Dependencies
+        run: |
+          set -euo pipefail
+          mkdir -p "${SOURCE_PACKAGES_DIR}"
+          xcodebuild \
+            -resolvePackageDependencies \
+            -workspace FireBox.xcworkspace \
+            -clonedSourcePackagesDirPath "${SOURCE_PACKAGES_DIR}"
+
+      - name: Build Release (App)
         run: |
           set -euo pipefail
           mkdir -p build/logs
-          XCODEBUILD_COMMON_ARGS=(
-            build
-            -workspace FireBox.xcworkspace
-            -configuration Release
-            -derivedDataPath build/DerivedData
-            -destination "generic/platform=macOS"
-            COMPILER_INDEX_STORE_ENABLE=NO
-            ONLY_ACTIVE_ARCH=NO
-            SWIFT_OPTIMIZATION_LEVEL=-O
-            SWIFT_COMPILATION_MODE=wholemodule
-            LLVM_LTO=YES
-            DEAD_CODE_STRIPPING=YES
-            STRIP_INSTALLED_PRODUCT=YES
-            COPY_PHASE_STRIP=YES
-            ENABLE_TESTABILITY=NO
-            "OTHER_SWIFT_FLAGS=\$(inherited) -cross-module-optimization"
-          )
+          LOG_FILE="build/logs/App.log"
+          if ! xcodebuild \
+            build \
+            -workspace FireBox.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -derivedDataPath "${DERIVED_DATA_PATH}" \
+            -clonedSourcePackagesDirPath "${SOURCE_PACKAGES_DIR}" \
+            -destination "generic/platform=macOS" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            SWIFT_OPTIMIZATION_LEVEL=-O \
+            SWIFT_COMPILATION_MODE=wholemodule \
+            LLVM_LTO=YES \
+            DEAD_CODE_STRIPPING=YES \
+            STRIP_INSTALLED_PRODUCT=YES \
+            COPY_PHASE_STRIP=YES \
+            ENABLE_TESTABILITY=NO \
+            "OTHER_SWIFT_FLAGS=\$(inherited) -cross-module-optimization" \
+            2>&1 | tee "${LOG_FILE}"; then
+            echo "Build failed for scheme: App"
+            grep -nE "error:|\\*\\* BUILD FAILED \\*\\*|CompileSwift|SwiftCompile|Command SwiftCompile failed" "${LOG_FILE}" || true
+            exit 1
+          fi
 
-          build_scheme() {
-            local scheme="$1"
-            local log_file="build/logs/${scheme}.log"
+      - name: Build Release (Demo)
+        run: |
+          set -euo pipefail
+          mkdir -p build/logs
+          LOG_FILE="build/logs/Demo.log"
+          if ! xcodebuild \
+            build \
+            -workspace FireBox.xcworkspace \
+            -scheme Demo \
+            -configuration Release \
+            -derivedDataPath "${DERIVED_DATA_PATH}" \
+            -clonedSourcePackagesDirPath "${SOURCE_PACKAGES_DIR}" \
+            -destination "generic/platform=macOS" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            SWIFT_OPTIMIZATION_LEVEL=-O \
+            SWIFT_COMPILATION_MODE=wholemodule \
+            LLVM_LTO=YES \
+            DEAD_CODE_STRIPPING=YES \
+            STRIP_INSTALLED_PRODUCT=YES \
+            COPY_PHASE_STRIP=YES \
+            ENABLE_TESTABILITY=NO \
+            "OTHER_SWIFT_FLAGS=\$(inherited) -cross-module-optimization" \
+            2>&1 | tee "${LOG_FILE}"; then
+            echo "Build failed for scheme: Demo"
+            grep -nE "error:|\\*\\* BUILD FAILED \\*\\*|CompileSwift|SwiftCompile|Command SwiftCompile failed" "${LOG_FILE}" || true
+            exit 1
+          fi
 
-            if ! xcodebuild \
-              "${XCODEBUILD_COMMON_ARGS[@]}" \
-              -scheme "${scheme}" \
-              2>&1 | tee "${log_file}"; then
-              echo "Build failed for scheme: ${scheme}"
-              echo "Extracted diagnostics from ${log_file}:"
-              grep -nE "error:|\\*\\* BUILD FAILED \\*\\*|CompileSwift|SwiftCompile|Command SwiftCompile failed" "${log_file}" || true
-              exit 1
-            fi
-          }
-
-          build_scheme App
-          build_scheme Demo
-          build_scheme Service
+      - name: Build Release (Service)
+        run: |
+          set -euo pipefail
+          mkdir -p build/logs
+          LOG_FILE="build/logs/Service.log"
+          if ! xcodebuild \
+            build \
+            -workspace FireBox.xcworkspace \
+            -scheme Service \
+            -configuration Release \
+            -derivedDataPath "${DERIVED_DATA_PATH}" \
+            -clonedSourcePackagesDirPath "${SOURCE_PACKAGES_DIR}" \
+            -destination "generic/platform=macOS" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            SWIFT_OPTIMIZATION_LEVEL=-O \
+            SWIFT_COMPILATION_MODE=wholemodule \
+            LLVM_LTO=YES \
+            DEAD_CODE_STRIPPING=YES \
+            STRIP_INSTALLED_PRODUCT=YES \
+            COPY_PHASE_STRIP=YES \
+            ENABLE_TESTABILITY=NO \
+            "OTHER_SWIFT_FLAGS=\$(inherited) -cross-module-optimization" \
+            2>&1 | tee "${LOG_FILE}"; then
+            echo "Build failed for scheme: Service"
+            grep -nE "error:|\\*\\* BUILD FAILED \\*\\*|CompileSwift|SwiftCompile|Command SwiftCompile failed" "${LOG_FILE}" || true
+            exit 1
+          fi
 
       - name: Package FireBox.pkg
         run: |
           set -euo pipefail
-          DERIVED_DATA_PATH="build/DerivedData"
-          OUTPUT_DIR="build"
           VERSION_RAW="${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '0.1.0' }}"
           VERSION="${VERSION_RAW#v}"
 
@@ -110,8 +178,6 @@ jobs:
       - name: Package FireChatBox.dmg
         run: |
           set -euo pipefail
-          DERIVED_DATA_PATH="build/DerivedData"
-          OUTPUT_DIR="build"
           VERSION_RAW="${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '0.1.0' }}"
           VERSION="${VERSION_RAW#v}"
 
@@ -133,9 +199,6 @@ jobs:
       - name: Package SDK.zip
         run: |
           set -euo pipefail
-          DERIVED_DATA_PATH="build/DerivedData"
-          OUTPUT_DIR="build"
-
           SDK_DIR="${OUTPUT_DIR}/sdk/FireBoxClient"
           mkdir -p "${SDK_DIR}/Sources"
 
