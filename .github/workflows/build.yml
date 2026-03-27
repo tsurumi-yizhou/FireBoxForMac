@@ -43,6 +43,7 @@ jobs:
       - name: Setup Tuist
         run: |
           brew install tuist
+          tuist install
           tuist generate
 
       - name: Resolve Swift Package Dependencies
