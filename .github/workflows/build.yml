@@ -46,15 +46,6 @@ jobs:
           tuist install
           tuist generate
 
-      - name: Resolve Swift Package Dependencies
-        run: |
-          set -euo pipefail
-          mkdir -p "${SOURCE_PACKAGES_DIR}"
-          xcodebuild \
-            -resolvePackageDependencies \
-            -workspace FireBox.xcworkspace \
-            -clonedSourcePackagesDirPath "${SOURCE_PACKAGES_DIR}"
-
       - name: Build Release (App)
         run: |
           set -euo pipefail
