@@ -2,12 +2,6 @@ import ProjectDescription
 
 let project = Project(
     name: "Service",
-    packages: [
-        .remote(
-            url: "https://github.com/teunlao/swift-ai-sdk",
-            requirement: .exact("0.17.5")
-        ),
-    ],
     targets: [
         .target(
             name: "Service",
@@ -18,10 +12,10 @@ let project = Project(
             sources: ["Sources/**"],
             dependencies: [
                 .project(target: "Shared", path: "../Shared"),
-                .package(product: "SwiftAISDK"),
-                .package(product: "OpenAIProvider"),
-                .package(product: "AnthropicProvider"),
-                .package(product: "GoogleProvider"),
+                .external(name: "SwiftAISDK"),
+                .external(name: "OpenAIProvider"),
+                .external(name: "AnthropicProvider"),
+                .external(name: "GoogleProvider"),
                 .sdk(name: "SwiftData", type: .framework, status: .required),
                 .sdk(name: "CloudKit", type: .framework, status: .required),
                 .sdk(name: "Security", type: .framework, status: .required),

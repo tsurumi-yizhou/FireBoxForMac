@@ -36,7 +36,7 @@ jobs:
             build/SourcePackages
             ~/.tuist/Cache
             ~/Library/Caches/org.swift.swiftpm
-          key: ${{ runner.os }}-xcode26_3-deps-${{ hashFiles('.package.resolved', '**/Package.resolved', 'Tuist.swift', 'Workspace.swift', '**/Project.swift') }}
+          key: ${{ runner.os }}-xcode26_3-deps-${{ hashFiles('Package.swift', '.package.resolved', '**/Package.resolved', 'Tuist.swift', 'Workspace.swift', '**/Project.swift') }}
           restore-keys: |
             ${{ runner.os }}-xcode26_3-deps-
 

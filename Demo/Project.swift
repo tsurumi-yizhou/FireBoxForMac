@@ -2,16 +2,6 @@ import ProjectDescription
 
 let project = Project(
     name: "Demo",
-    packages: [
-        .remote(
-            url: "https://github.com/gonzalezreal/textual",
-            requirement: .exact("0.3.1")
-        ),
-        .remote(
-            url: "https://github.com/teunlao/swift-ai-sdk",
-            requirement: .exact("0.17.5")
-        ),
-    ],
     targets: [
         .target(
             name: "Demo",
@@ -33,8 +23,8 @@ let project = Project(
             resources: ["Resources/**"],
             dependencies: [
                 .project(target: "Client", path: "../Client"),
-                .package(product: "Textual"),
-                .package(product: "AISDKJSONSchema"),
+                .external(name: "Textual"),
+                .external(name: "AISDKJSONSchema"),
             ],
             settings: .settings(
                 base: [
