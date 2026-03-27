@@ -5,7 +5,7 @@ let project = Project(
     packages: [
         .remote(
             url: "https://github.com/teunlao/swift-ai-sdk",
-            requirement: .exact("0.10.0")
+            requirement: .exact("0.17.5")
         ),
     ],
     targets: [

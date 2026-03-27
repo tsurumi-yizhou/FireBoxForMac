@@ -97,25 +97,23 @@ private struct RouteRuleCard: View {
     }
 
     var body: some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(rule.routeId.isEmpty ? String(localized: "app.common.none") : rule.routeId)
-                        .font(.headline)
-                    Spacer()
-                    Text(rule.strategy.localizedName)
-                        .foregroundStyle(.secondary)
-                }
-                Text(previewTargets)
-                    .font(.callout)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(rule.routeId.isEmpty ? String(localized: "app.common.none") : rule.routeId)
+                    .font(.headline)
+                Spacer()
+                Text(rule.strategy.localizedName)
                     .foregroundStyle(.secondary)
-                HStack {
-                    Button("app.routes.saveRule", action: onEdit)
-                    Button("app.routes.deleteRule", role: .destructive, action: onDelete)
-                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(previewTargets)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            HStack {
+                Button("app.routes.saveRule", action: onEdit)
+                Button("app.routes.deleteRule", role: .destructive, action: onDelete)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 4)
     }
 }

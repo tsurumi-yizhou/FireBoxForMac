@@ -62,11 +62,12 @@ final class AppState {
 
         do {
             try await client.connect()
-            try await refreshProviders()
-            try await refreshRoutes()
-            try await refreshConnections()
-            try await refreshAllowlist()
-            try await refreshStats()
+            async let providersTask: Void = refreshProviders()
+            async let routesTask: Void = refreshRoutes()
+            async let connectionsTask: Void = refreshConnections()
+            async let allowlistTask: Void = refreshAllowlist()
+            async let statsTask: Void = refreshStats()
+            _ = try await (providersTask, routesTask, connectionsTask, allowlistTask, statsTask)
             isServiceConnected = true
         } catch {
             isServiceConnected = await client.isConnected

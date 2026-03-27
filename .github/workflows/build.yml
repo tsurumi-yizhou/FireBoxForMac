@@ -31,15 +31,31 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/logs
+          XCODEBUILD_COMMON_ARGS=(
+            build
+            -workspace FireBox.xcworkspace
+            -configuration Release
+            -derivedDataPath build/DerivedData
+            -destination "generic/platform=macOS"
+            COMPILER_INDEX_STORE_ENABLE=NO
+            ONLY_ACTIVE_ARCH=NO
+            SWIFT_OPTIMIZATION_LEVEL=-O
+            SWIFT_COMPILATION_MODE=wholemodule
+            LLVM_LTO=YES
+            DEAD_CODE_STRIPPING=YES
+            STRIP_INSTALLED_PRODUCT=YES
+            COPY_PHASE_STRIP=YES
+            ENABLE_TESTABILITY=NO
+            "OTHER_SWIFT_FLAGS=\$(inherited) -cross-module-optimization"
+          )
 
           build_scheme() {
             local scheme="$1"
             local log_file="build/logs/${scheme}.log"
 
             if ! xcodebuild \
+              "${XCODEBUILD_COMMON_ARGS[@]}" \
               -scheme "${scheme}" \
-              -configuration Release \
-              -derivedDataPath build/DerivedData \
               2>&1 | tee "${log_file}"; then
               echo "Build failed for scheme: ${scheme}"
               echo "Extracted diagnostics from ${log_file}:"
@@ -87,22 +103,22 @@ jobs:
                    --install-location / \
                    "${OUTPUT_DIR}/FireBox.pkg"
 
-      - name: Package Demo.dmg
+      - name: Package FireChatBox.dmg
         run: |
           set -euo pipefail
           DERIVED_DATA_PATH="build/DerivedData"
           OUTPUT_DIR="build"
           VERSION="${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '1.0.0' }}"
 
-          DMG_NAME="Demo.dmg"
+          DMG_NAME="FireChatBox.dmg"
           DMG_PATH="${OUTPUT_DIR}/${DMG_NAME}"
           TEMP_DIR="${OUTPUT_DIR}/dmg_temp"
 
           mkdir -p "${TEMP_DIR}"
-          cp -R "${DERIVED_DATA_PATH}/Build/Products/Release/Demo.app" "${TEMP_DIR}/FireBox Demo.app"
+          cp -R "${DERIVED_DATA_PATH}/Build/Products/Release/FireChatBox.app" "${TEMP_DIR}/FireChatBox.app"
           ln -s /Applications "${TEMP_DIR}/Applications"
 
-          hdiutil create -volname "FireBox Demo" \
+          hdiutil create -volname "FireChatBox" \
                          -srcfolder "${TEMP_DIR}" \
                          -ov -format UDZO \
                          "${DMG_PATH}"
@@ -133,7 +149,7 @@ jobs:
         with:
           files: |
             build/FireBox.pkg
-            build/Demo.dmg
+            build/FireChatBox.dmg
             build/SDK.zip
           generate_release_notes: true
         env:

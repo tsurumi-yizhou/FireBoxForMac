@@ -89,6 +89,31 @@ private extension Data {
     }
 }
 
+private enum AuthorizationPromptOutcome: Sendable {
+    case allowed
+    case denied
+    case error(String)
+}
+
+private actor AuthorizationPromptCoordinator {
+    private var inFlightPrompts: [String: Task<AuthorizationPromptOutcome, Never>] = [:]
+
+    func resolve(
+        identityKey: String,
+        prompt: @escaping @Sendable () async -> AuthorizationPromptOutcome
+    ) async -> AuthorizationPromptOutcome {
+        if let existing = inFlightPrompts[identityKey] {
+            return await existing.value
+        }
+
+        let task = Task { await prompt() }
+        inFlightPrompts[identityKey] = task
+        let outcome = await task.value
+        inFlightPrompts[identityKey] = nil
+        return outcome
+    }
+}
+
 final class ServiceDelegate: NSObject, NSXPCListenerDelegate {
     private let service: Service
 
@@ -98,16 +123,23 @@ final class ServiceDelegate: NSObject, NSXPCListenerDelegate {
 
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection newConnection: NSXPCConnection) -> Bool {
         let caller = makeXPCCaller(from: newConnection)
-        let connectionID = service.registerConnection(caller: caller)
+        let lifecycle = ConnectionLifecycle()
+        Task { [weak service] in
+            guard let service else { return }
+            let connectionID = await service.registerConnection(caller: caller)
+            if lifecycle.markRegistered(connectionID) {
+                service.unregisterConnection(connectionID: connectionID)
+            }
+        }
 
         newConnection.exportedInterface = XPCInterfaceFactory.makeServiceInterface()
         newConnection.exportedObject = service
-        newConnection.invalidationHandler = { [weak service] in
+        let handleConnectionEnd = { [weak service] in
+            guard let connectionID = lifecycle.markConnectionEnded() else { return }
             service?.unregisterConnection(connectionID: connectionID)
         }
-        newConnection.interruptionHandler = { [weak service] in
-            service?.unregisterConnection(connectionID: connectionID)
-        }
+        newConnection.invalidationHandler = handleConnectionEnd
+        newConnection.interruptionHandler = handleConnectionEnd
         newConnection.resume()
         return true
     }
@@ -118,6 +150,7 @@ final class Service: NSObject, ServiceProtocol {
     private let iso8601: ISO8601DateFormatter
     private let streamTaskQueue = DispatchQueue(label: "com.firebox.service.stream-tasks")
     private var streamTasks: [Int64: Task<Void, Never>] = [:]
+    private let authorizationPromptCoordinator = AuthorizationPromptCoordinator()
 
     init(core: ServiceCore) {
         self.core = core
@@ -128,15 +161,8 @@ final class Service: NSObject, ServiceProtocol {
 
     // MARK: Connection runtime bridge
 
-    func registerConnection(caller: XPCCaller) -> Int32 {
-        let semaphore = DispatchSemaphore(value: 0)
-        var value: Int32 = 0
-        Task {
-            value = await core.registerConnection(caller: caller)
-            semaphore.signal()
-        }
-        semaphore.wait()
-        return value
+    func registerConnection(caller: XPCCaller) async -> Int32 {
+        await core.registerConnection(caller: caller)
     }
 
     func unregisterConnection(connectionID: Int32) {
@@ -991,37 +1017,54 @@ final class Service: NSObject, ServiceProtocol {
             case .denyCooldown(let until):
                 return "Access denied until \(iso8601.string(from: until))"
             case .prompt:
-                let allowed = promptForAccess(caller: caller)
-                try await core.applyAccessPromptDecision(caller: caller, isAllowed: allowed)
-                return allowed ? nil : "Access denied by user."
+                let outcome = await authorizationPromptCoordinator.resolve(identityKey: caller.identityKey) { [core] in
+                    let allowed = await Self.promptForAccess(caller: caller)
+                    do {
+                        try await core.applyAccessPromptDecision(caller: caller, isAllowed: allowed)
+                        return allowed ? .allowed : .denied
+                    } catch {
+                        return .error(error.localizedDescription)
+                    }
+                }
+                switch outcome {
+                case .allowed:
+                    return nil
+                case .denied:
+                    return "Access denied by user."
+                case .error(let message):
+                    return message
+                }
             }
         } catch {
             return error.localizedDescription
         }
     }
 
-    private func promptForAccess(caller: XPCCaller) -> Bool {
-        let title = "FireBox Authorization Request" as CFString
-        let identity = caller.codeSigningIdentifier ?? caller.executablePath ?? "uid:\(caller.euid)"
-        let message = "Allow XPC caller \(identity) pid:\(caller.pid) uid:\(caller.euid) to use FireBox?" as CFString
-        var responseFlags: CFOptionFlags = 0
-        let status = CFUserNotificationDisplayAlert(
-            0,
-            CFOptionFlags(kCFUserNotificationNoteAlertLevel),
-            nil,
-            nil,
-            nil,
-            title,
-            message,
-            "Allow" as CFString,
-            "Deny" as CFString,
-            nil,
-            &responseFlags
-        )
-        if status != 0 {
-            return false
+    private static func promptForAccess(caller: XPCCaller) async -> Bool {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let title = "FireBox Authorization Request" as CFString
+                let identity = caller.codeSigningIdentifier ?? caller.executablePath ?? "uid:\(caller.euid)"
+                let message = "Allow XPC caller \(identity) pid:\(caller.pid) uid:\(caller.euid) to use FireBox?" as CFString
+                var responseFlags: CFOptionFlags = 0
+                let status = CFUserNotificationDisplayAlert(
+                    0,
+                    CFOptionFlags(kCFUserNotificationNoteAlertLevel),
+                    nil,
+                    nil,
+                    nil,
+                    title,
+                    message,
+                    "Allow" as CFString,
+                    "Deny" as CFString,
+                    nil,
+                    &responseFlags
+                )
+
+                let allowed = status == 0 && responseFlags == CFOptionFlags(kCFUserNotificationDefaultResponse)
+                continuation.resume(returning: allowed)
+            }
         }
-        return responseFlags == CFOptionFlags(kCFUserNotificationDefaultResponse)
     }
 
     // MARK: Private - Providers
@@ -1616,18 +1659,16 @@ final class Service: NSObject, ServiceProtocol {
     }
 
     private static func usageDictionary(from usage: LanguageModelUsage) throws -> NSDictionary {
-        guard let inputTokens = usage.inputTokens else {
-            throw RPCValidationError.invalidArgument("Upstream usage is missing inputTokens")
-        }
-        guard let outputTokens = usage.outputTokens else {
-            throw RPCValidationError.invalidArgument("Upstream usage is missing outputTokens")
-        }
-        guard let totalTokens = usage.totalTokens else {
-            throw RPCValidationError.invalidArgument("Upstream usage is missing totalTokens")
-        }
-        let input = Int64(inputTokens)
-        let output = Int64(outputTokens)
-        let total = Int64(totalTokens)
+        // Some providers may omit one or more usage counters for specific operations
+        // (especially structured-output/function-style calls). Treat missing values as 0
+        // and derive total when needed so capability RPCs do not fail on partial usage.
+        let inputTokens = usage.inputTokens ?? 0
+        let outputTokens = usage.outputTokens ?? 0
+        let totalTokens = usage.totalTokens ?? (inputTokens + outputTokens)
+
+        let input = Int64(max(0, inputTokens))
+        let output = Int64(max(0, outputTokens))
+        let total = Int64(max(0, totalTokens))
 
         return [
             "promptTokens": input,
@@ -1672,6 +1713,29 @@ final class Service: NSObject, ServiceProtocol {
             "totalTokens": stats.totalTokens,
             "estimatedCostUsd": stats.estimatedCostUsd,
         ] as NSDictionary
+    }
+}
+
+private final class ConnectionLifecycle: @unchecked Sendable {
+    private let lock = NSLock()
+    private var connectionID: Int32?
+    private var hasEnded = false
+
+    func markRegistered(_ connectionID: Int32) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        self.connectionID = connectionID
+        return hasEnded
+    }
+
+    func markConnectionEnded() -> Int32? {
+        lock.lock()
+        defer { lock.unlock() }
+        if hasEnded {
+            return nil
+        }
+        hasEnded = true
+        return connectionID
     }
 }
 

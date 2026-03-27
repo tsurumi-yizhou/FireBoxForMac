@@ -28,7 +28,11 @@ let project = Project(
                 base: [
                     "ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS": "YES",
                     "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                    "EXECUTABLE_NAME": "FireBox",
+                    "INFOPLIST_KEY_CFBundleDisplayName": "FireBox",
+                    "INFOPLIST_KEY_CFBundleName": "FireBox",
                     "PRODUCT_NAME": "FireBox",
+                    "WRAPPER_NAME": "FireBox.app",
                     "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
                 ]
             )

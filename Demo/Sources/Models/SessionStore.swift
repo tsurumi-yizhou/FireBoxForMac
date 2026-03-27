@@ -11,6 +11,7 @@ struct SessionHeaderRecord: Codable {
     let type: String // "session_header"
     let sessionId: String
     var title: String
+    var isTitleLocked: Bool?
     var modelId: String?
     var reasoningEffortRawValue: Int32?
     let createdAt: String // ISO-8601
@@ -20,6 +21,7 @@ struct SessionHeaderRecord: Codable {
         self.type = "session_header"
         self.sessionId = session.id.uuidString
         self.title = session.title
+        self.isTitleLocked = session.isTitleLocked
         self.modelId = session.selectedModel?.modelId
         self.reasoningEffortRawValue = session.selectedReasoningEffort.rawValue
         self.createdAt = ISO8601DateFormatter().string(from: Date())
@@ -205,6 +207,7 @@ actor SessionStore {
         return ChatSession(
             id: sessionUUID,
             title: header.title,
+            isTitleLocked: header.isTitleLocked ?? false,
             messages: messages,
             selectedModel: model,
             selectedReasoningEffort: reasoningEffort
