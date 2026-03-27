@@ -183,6 +183,12 @@ struct ChatView: View {
                 }
                 scrollToBottom(proxy: proxy)
             }
+            .onChange(of: session.messages.last?.reasoningContent) {
+                if state.hasPendingSearchJump(for: session.id) {
+                    return
+                }
+                scrollToBottom(proxy: proxy)
+            }
             .onChange(of: session.messages.count) {
                 if state.hasPendingSearchJump(for: session.id) {
                     return
@@ -367,6 +373,8 @@ private struct MessageRow: View {
     private var isUser: Bool { message.role == .user }
     @State private var isHovering = false
     @State private var preparedAssistantContent: String
+    @State private var preparedAssistantReasoningContent: String
+    @State private var isReasoningExpanded: Bool
     private static let markdownParser = AttributedStringMarkdownParser(
         baseURL: nil,
         options: .init(
@@ -388,6 +396,8 @@ private struct MessageRow: View {
         self.onRetry = onRetry
         self.onDelete = onDelete
         _preparedAssistantContent = State(initialValue: Self.preparedSource(for: message))
+        _preparedAssistantReasoningContent = State(initialValue: Self.preparedReasoningSource(for: message))
+        _isReasoningExpanded = State(initialValue: message.isStreaming)
     }
 
     var body: some View {
@@ -415,6 +425,12 @@ private struct MessageRow: View {
         .onChange(of: message.content) {
             refreshPreparedAssistantContent()
         }
+        .onChange(of: message.reasoningContent) {
+            refreshPreparedAssistantContent()
+            if message.isStreaming && !message.reasoningContent.isEmpty {
+                isReasoningExpanded = true
+            }
+        }
         .onChange(of: message.isStreaming) {
             refreshPreparedAssistantContent()
         }
@@ -432,6 +448,8 @@ private struct MessageRow: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
             }
+
+            reasoningSection
 
             if !message.content.isEmpty {
                 if !isUser && !message.isStreaming {
@@ -454,6 +472,38 @@ private struct MessageRow: View {
         )
     }
 
+    @ViewBuilder
+    private var reasoningSection: some View {
+        if !isUser && !message.reasoningContent.isEmpty {
+            DisclosureGroup(
+                isExpanded: $isReasoningExpanded,
+                content: {
+                    if message.isStreaming {
+                        Text(message.reasoningContent)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                            .padding(.top, 4)
+                    } else {
+                        StructuredText(
+                            preparedAssistantReasoningContent,
+                            parser: Self.markdownParser
+                        )
+                        .textual.textSelection(.enabled)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                    }
+                },
+                label: {
+                    Label(String(localized: "demo.chat.thinking"), systemImage: "brain")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            )
+        }
+    }
+
     private static func preparedSource(for message: ChatMessage) -> String {
         guard message.role == .assistant, !message.isStreaming, !message.content.isEmpty else {
             return ""
@@ -461,8 +511,16 @@ private struct MessageRow: View {
         return sourceWithPreservedSoftBreaks(message.content)
     }
 
+    private static func preparedReasoningSource(for message: ChatMessage) -> String {
+        guard message.role == .assistant, !message.isStreaming, !message.reasoningContent.isEmpty else {
+            return ""
+        }
+        return sourceWithPreservedSoftBreaks(message.reasoningContent)
+    }
+
     private func refreshPreparedAssistantContent() {
         preparedAssistantContent = Self.preparedSource(for: message)
+        preparedAssistantReasoningContent = Self.preparedReasoningSource(for: message)
     }
 
     private static func sourceWithPreservedSoftBreaks(_ content: String) -> String {

@@ -31,6 +31,12 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "停止" } }
       }
     },
+    "demo.chat.thinking" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Thinking" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "思考内容" } }
+      }
+    },
     "demo.common.delete" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete" } },

@@ -39,6 +39,7 @@ final class ChatMessage: Identifiable {
     let id: UUID
     var role: MessageRole
     var content: String
+    var reasoningContent: String
     var imageDataList: [Data]
     var isStreaming: Bool
 
@@ -46,12 +47,14 @@ final class ChatMessage: Identifiable {
         id: UUID = UUID(),
         role: MessageRole,
         content: String,
+        reasoningContent: String = "",
         imageDataList: [Data] = [],
         isStreaming: Bool = false
     ) {
         self.id = id
         self.role = role
         self.content = content
+        self.reasoningContent = reasoningContent
         self.imageDataList = imageDataList
         self.isStreaming = isStreaming
     }
@@ -403,13 +406,16 @@ final class DemoState {
             didMutateSearchableContent = !text.isEmpty
         case .reasoning(_, let text):
             if !text.isEmpty {
-                sessions[sessionIndex].messages[messageIndex].content += text
+                sessions[sessionIndex].messages[messageIndex].reasoningContent += text
                 didMutateSearchableContent = true
             }
         case .usage:
             break
         case .completed(_, let response):
             sessions[sessionIndex].messages[messageIndex].content = response.message.content
+            if let reasoningText = response.reasoningText, !reasoningText.isEmpty {
+                sessions[sessionIndex].messages[messageIndex].reasoningContent = reasoningText
+            }
             sessions[sessionIndex].messages[messageIndex].isStreaming = false
             didMutateSearchableContent = true
             titleGenerationTrigger = (target.sessionId, response.message.content)
@@ -632,11 +638,21 @@ final class DemoState {
                 order: index,
                 title: session.title,
                 messages: session.messages.map {
-                    DemoSearchMessageSnapshot(id: $0.id, content: $0.content)
+                    DemoSearchMessageSnapshot(id: $0.id, content: Self.searchableText(for: $0))
                 }
             )
         }
         return DemoSearchRequest(query: query, limit: nil, sessionSnapshot: snapshots)
+    }
+
+    private static func searchableText(for message: ChatMessage) -> String {
+        if message.reasoningContent.isEmpty {
+            return message.content
+        }
+        if message.content.isEmpty {
+            return message.reasoningContent
+        }
+        return message.content + "\n\n" + message.reasoningContent
     }
 
     private func scheduleSessionSearch(debounce: Bool) {

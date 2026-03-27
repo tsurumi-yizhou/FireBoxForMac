@@ -34,6 +34,7 @@ struct MessageRecord: Codable {
     let messageId: String
     let role: String // "user" | "assistant"
     let content: String
+    let reasoningContent: String?
     let hasImage: Bool
     let imageDataList: [Data]?
     let imageData: Data?
@@ -44,6 +45,7 @@ struct MessageRecord: Codable {
         self.messageId = message.id.uuidString
         self.role = message.role.rawValue
         self.content = message.content
+        self.reasoningContent = message.reasoningContent.isEmpty ? nil : message.reasoningContent
         self.hasImage = !message.imageDataList.isEmpty
         self.imageDataList = message.imageDataList.isEmpty ? nil : message.imageDataList
         // Legacy single-image field kept for backward compatibility.
@@ -108,7 +110,10 @@ actor SessionStore {
         }
         for message in session.messages {
             // Skip empty assistant placeholders from cancelled/error streams
-            if message.role == .assistant && message.content.isEmpty && !message.isStreaming {
+            if message.role == .assistant &&
+                message.content.isEmpty &&
+                message.reasoningContent.isEmpty &&
+                !message.isStreaming {
                 continue
             }
             let record = MessageRecord(message: message)
@@ -199,6 +204,7 @@ actor SessionStore {
                 id: UUID(uuidString: record.messageId) ?? UUID(),
                 role: role,
                 content: record.content,
+                reasoningContent: record.reasoningContent ?? "",
                 imageDataList: imageDataList
             )
             messages.append(msg)
