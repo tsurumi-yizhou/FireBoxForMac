@@ -22,8 +22,8 @@ let project = Project(
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "FireChatBox",
                 "CFBundleName": "FireChatBox",
-                "CFBundleShortVersionString": "1.0.0",
-                "CFBundleVersion": "1",
+                "CFBundleShortVersionString": "0.1.0",
+                "CFBundleVersion": "0.1.0",
                 "LSApplicationCategoryType": "public.app-category.developer-tools",
                 "LSMinimumSystemVersion": "15.0",
                 "CFBundleLocalizations": ["en", "zh-Hans"],
