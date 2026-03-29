@@ -20,7 +20,7 @@ import Foundation
 
     // MARK: Capability
 
-    func listModels(withReply reply: @escaping (NSDictionary) -> Void)
+    func listModels(withReply reply: @escaping ([NSDictionary]) -> Void)
     func chatCompletion(_ request: NSDictionary, withReply reply: @escaping (NSDictionary) -> Void)
     func startChatCompletionStream(_ request: NSDictionary, sink: ChatStreamSinkProtocol, withReply reply: @escaping (Int64) -> Void)
     func cancelChatCompletion(_ requestId: Int64, withReply reply: @escaping () -> Void)

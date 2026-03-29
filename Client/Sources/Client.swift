@@ -285,7 +285,7 @@ public actor Client {
     }
 
     public enum RouteStrategy: String, Sendable, CaseIterable {
-        case ordered = "Ordered"
+        case failover = "Failover"
         case random = "Random"
     }
 
@@ -508,15 +508,13 @@ public actor Client {
     }
 
     public func listModels() async throws -> [CapabilityModelInfo] {
-        let response = try await invokeEnvelope { service, finish in
+        let modelsRaw: [NSDictionary] = try await invoke { service, finish in
             service.listModels(withReply: finish)
         }
-
-        let modelsRaw = try Self.requiredArray(response["models"], key: "models")
-        return try modelsRaw.map { item in
-            guard let dict = item as? NSDictionary else {
-                throw ClientError.decoding("models item must be an object")
-            }
+        if modelsRaw.count == 1, let error = modelsRaw.first?["error"] as? String {
+            throw ClientError.rpc(error)
+        }
+        return try modelsRaw.map { dict in
             return try Self.decodeCapabilityModelInfo(dict)
         }
     }

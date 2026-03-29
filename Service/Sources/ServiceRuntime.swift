@@ -184,11 +184,11 @@ final class Service: NSObject, ServiceProtocol {
 
     // MARK: Capability
 
-    func listModels(withReply reply: @escaping (NSDictionary) -> Void) {
+    func listModels(withReply reply: @escaping ([NSDictionary]) -> Void) {
         let caller = Self.currentCaller()
         Task {
             if let denial = await authorize(caller: caller) {
-                reply(Self.errorEnvelope(denial))
+                reply([["error": denial] as NSDictionary])
                 return
             }
 
@@ -206,9 +206,9 @@ final class Service: NSObject, ServiceProtocol {
                         "available": info.available,
                     ] as NSDictionary
                 }
-                reply(Self.responseEnvelope(["models": payload] as NSDictionary))
+                reply(payload)
             } catch {
-                reply(Self.errorEnvelope(error.localizedDescription))
+                reply([["error": error.localizedDescription] as NSDictionary])
             }
         }
     }
@@ -224,21 +224,22 @@ final class Service: NSObject, ServiceProtocol {
             do {
                 let parsed = try Self.parseChatRequest(request)
                 let candidates = try await core.resolveCandidates(for: parsed.modelId)
-                guard let candidate = candidates.first else {
-                    throw RPCValidationError.invalidArgument("No route candidate resolved for model \(parsed.modelId)")
+                let result: DefaultGenerateTextResult<JSONValue> = try await executeFailover(
+                    modelID: parsed.modelId,
+                    candidates: candidates
+                ) { candidate in
+                    let model = try makeLanguageModel(provider: candidate.provider, modelID: candidate.modelId)
+                    let providerOptions = try Self.providerOptions(
+                        for: candidate.provider.providerType,
+                        reasoningEffort: parsed.reasoningEffort
+                    )
+                    return try await generateText(
+                        model: model,
+                        messages: parsed.messages,
+                        providerOptions: providerOptions,
+                        settings: parsed.settings
+                    )
                 }
-
-                let model = try makeLanguageModel(provider: candidate.provider, modelID: candidate.modelId)
-                let providerOptions = try Self.providerOptions(
-                    for: candidate.provider.providerType,
-                    reasoningEffort: parsed.reasoningEffort
-                )
-                let result: DefaultGenerateTextResult<JSONValue> = try await generateText(
-                    model: model,
-                    messages: parsed.messages,
-                    providerOptions: providerOptions,
-                    settings: parsed.settings
-                )
 
                 let usage = try Self.usageDictionary(from: result.usage)
                 try await core.recordMetric(
@@ -289,20 +290,17 @@ final class Service: NSObject, ServiceProtocol {
             do {
                 let parsed = try Self.parseChatRequest(request)
                 let candidates = try await core.resolveCandidates(for: parsed.modelId)
-                guard let candidate = candidates.first else {
-                    throw RPCValidationError.invalidArgument("No route candidate resolved for model \(parsed.modelId)")
-                }
                 guard let caller else {
                     throw RPCValidationError.invalidArgument("Missing XPC caller context.")
                 }
-                await core.registerActiveStream(requestID: requestID, caller: caller)
+                try await core.registerActiveStream(requestID: requestID, caller: caller)
 
                 let task: Task<Void, Never> = Task { [weak self] in
                     guard let self else { return }
                     await self.runStream(
                         requestID: requestID,
                         parsed: parsed,
-                        candidate: candidate,
+                        candidates: candidates,
                         sink: sink
                     )
                 }
@@ -316,10 +314,19 @@ final class Service: NSObject, ServiceProtocol {
     func cancelChatCompletion(_ requestId: Int64, withReply reply: @escaping () -> Void) {
         let caller = Self.currentCaller()
         Task {
-            if await authorize(caller: caller) == nil {
+            if let denial = await authorize(caller: caller) {
+                reply()
+                return
+            }
+            do {
+                guard let caller else {
+                    throw RPCValidationError.invalidArgument("Missing XPC caller context.")
+                }
+                try await core.ensureStreamOwnership(requestID: requestId, caller: caller)
                 if let task = removeStreamTask(for: requestId) {
                     task.cancel()
                 }
+            } catch {
             }
             reply()
         }
@@ -336,12 +343,13 @@ final class Service: NSObject, ServiceProtocol {
             do {
                 let parsed = try Self.parseEmbeddingRequest(request)
                 let candidates = try await core.resolveCandidates(for: parsed.modelId)
-                guard let candidate = candidates.first else {
-                    throw RPCValidationError.invalidArgument("No route candidate resolved for model \(parsed.modelId)")
+                let result = try await executeFailover(
+                    modelID: parsed.modelId,
+                    candidates: candidates
+                ) { candidate in
+                    let model = try makeEmbeddingModel(provider: candidate.provider, modelID: candidate.modelId)
+                    return try await embedMany(model: model, values: parsed.input)
                 }
-
-                let model = try makeEmbeddingModel(provider: candidate.provider, modelID: candidate.modelId)
-                let result = try await embedMany(model: model, values: parsed.input)
 
                 let usage: NSDictionary = [
                     "promptTokens": Int64(result.usage.tokens),
@@ -389,35 +397,36 @@ final class Service: NSObject, ServiceProtocol {
             do {
                 let parsed = try Self.parseFunctionRequest(request)
                 let candidates = try await core.resolveCandidates(for: parsed.modelId)
-                guard let candidate = candidates.first else {
-                    throw RPCValidationError.invalidArgument("No route candidate resolved for model \(parsed.modelId)")
+                let result = try await executeFailover(
+                    modelID: parsed.modelId,
+                    candidates: candidates
+                ) { candidate in
+                    let model = try makeLanguageModel(provider: candidate.provider, modelID: candidate.modelId)
+                    let prompt = """
+                    Function Name:
+                    \(parsed.functionName)
+
+                    Function Description:
+                    \(parsed.functionDescription)
+
+                    Input JSON:
+                    \(parsed.inputJSON)
+
+                    Input Schema JSON:
+                    \(parsed.inputSchemaJSON)
+
+                    Output Schema JSON:
+                    \(parsed.outputSchemaJSON)
+
+                    Return strictly valid JSON that matches Output Schema JSON.
+                    """
+
+                    return try await generateObjectNoSchema(
+                        model: model,
+                        prompt: prompt,
+                        settings: parsed.settings
+                    )
                 }
-
-                let model = try makeLanguageModel(provider: candidate.provider, modelID: candidate.modelId)
-                let prompt = """
-                Function Name:
-                \(parsed.functionName)
-
-                Function Description:
-                \(parsed.functionDescription)
-
-                Input JSON:
-                \(parsed.inputJSON)
-
-                Input Schema JSON:
-                \(parsed.inputSchemaJSON)
-
-                Output Schema JSON:
-                \(parsed.outputSchemaJSON)
-
-                Return strictly valid JSON that matches Output Schema JSON.
-                """
-
-                let result = try await generateObjectNoSchema(
-                    model: model,
-                    prompt: prompt,
-                    settings: parsed.settings
-                )
 
                 let outputData = try JSONEncoder().encode(result.object)
                 let outputJSON = String(decoding: outputData, as: UTF8.self)
@@ -837,7 +846,7 @@ final class Service: NSObject, ServiceProtocol {
     private func runStream(
         requestID: Int64,
         parsed: ChatRequest,
-        candidate: ResolvedCandidate,
+        candidates: [ResolvedCandidate],
         sink: ChatStreamSinkProtocol
     ) async {
         defer {
@@ -846,36 +855,82 @@ final class Service: NSObject, ServiceProtocol {
         }
 
         do {
-            let model = try makeLanguageModel(provider: candidate.provider, modelID: candidate.modelId)
-            let providerOptions = try Self.providerOptions(
-                for: candidate.provider.providerType,
-                reasoningEffort: parsed.reasoningEffort
-            )
-            let result = try streamText(
-                model: model,
-                messages: parsed.messages,
-                providerOptions: providerOptions,
-                settings: parsed.settings
-            )
-
-            var assembledText = ""
-            var assembledReasoning = ""
-            var didEmitStarted = false
-
-            func emitStartedIfNeeded() {
-                guard !didEmitStarted else { return }
-                sink.onStarted(["requestId": requestID] as NSDictionary)
-                didEmitStarted = true
+            var attemptErrors: [String] = []
+            for candidate in candidates {
+                do {
+                    try await runStreamAttempt(
+                        requestID: requestID,
+                        parsed: parsed,
+                        candidate: candidate,
+                        sink: sink
+                    )
+                    return
+                } catch is CancellationError {
+                    throw CancellationError()
+                } catch let failure as StreamAttemptFailure {
+                    if failure.didEmitStarted {
+                        sink.onError([
+                            "requestId": requestID,
+                            "error": failure.underlying.localizedDescription,
+                        ] as NSDictionary)
+                        return
+                    }
+                    attemptErrors.append("\(candidate.provider.name)/\(candidate.modelId): \(failure.underlying.localizedDescription)")
+                } catch {
+                    attemptErrors.append("\(candidate.provider.name)/\(candidate.modelId): \(error.localizedDescription)")
+                }
             }
+            throw RPCValidationError.invalidArgument(
+                "All route candidates failed for model \(parsed.modelId): \(attemptErrors.joined(separator: "; "))"
+            )
+        } catch is CancellationError {
+            sink.onCancelled(["requestId": requestID] as NSDictionary)
+            return
+        } catch {
+            sink.onError([
+                "requestId": requestID,
+                "error": error.localizedDescription,
+            ] as NSDictionary)
+        }
+    }
 
-            func emitReasoningDelta(_ text: String) {
-                assembledReasoning += text
-                sink.onReasoningDelta([
-                    "requestId": requestID,
-                    "reasoningText": text,
-                ] as NSDictionary)
-            }
+    private func runStreamAttempt(
+        requestID: Int64,
+        parsed: ChatRequest,
+        candidate: ResolvedCandidate,
+        sink: ChatStreamSinkProtocol
+    ) async throws {
+        let model = try makeLanguageModel(provider: candidate.provider, modelID: candidate.modelId)
+        let providerOptions = try Self.providerOptions(
+            for: candidate.provider.providerType,
+            reasoningEffort: parsed.reasoningEffort
+        )
+        let result = try streamText(
+            model: model,
+            messages: parsed.messages,
+            providerOptions: providerOptions,
+            settings: parsed.settings
+        )
 
+        var assembledText = ""
+        var assembledReasoning = ""
+        var didEmitStarted = false
+
+        func emitStartedIfNeeded() {
+            guard !didEmitStarted else { return }
+            sink.onStarted(["requestId": requestID] as NSDictionary)
+            didEmitStarted = true
+        }
+
+        func emitReasoningDelta(_ text: String) {
+            assembledReasoning += text
+            sink.onReasoningDelta([
+                "requestId": requestID,
+                "reasoningText": text,
+            ] as NSDictionary)
+        }
+
+        do {
             for try await part in result.fullStream {
                 if Task.isCancelled {
                     throw CancellationError()
@@ -992,14 +1047,30 @@ final class Service: NSObject, ServiceProtocol {
 
             throw RPCValidationError.invalidArgument("Streaming terminated unexpectedly.")
         } catch is CancellationError {
-            sink.onCancelled(["requestId": requestID] as NSDictionary)
-            return
+            throw CancellationError()
         } catch {
-            sink.onError([
-                "requestId": requestID,
-                "error": error.localizedDescription,
-            ] as NSDictionary)
+            throw StreamAttemptFailure(underlying: error, didEmitStarted: didEmitStarted)
         }
+    }
+
+    private func executeFailover<T>(
+        modelID: String,
+        candidates: [ResolvedCandidate],
+        operation: (ResolvedCandidate) async throws -> T
+    ) async throws -> T {
+        var attemptErrors: [String] = []
+        for candidate in candidates {
+            do {
+                return try await operation(candidate)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                attemptErrors.append("\(candidate.provider.name)/\(candidate.modelId): \(error.localizedDescription)")
+            }
+        }
+        throw RPCValidationError.invalidArgument(
+            "All route candidates failed for model \(modelID): \(attemptErrors.joined(separator: "; "))"
+        )
     }
 
     // MARK: Private - Auth
@@ -1326,8 +1397,8 @@ final class Service: NSObject, ServiceProtocol {
             settings.temperature = temperature
         }
         if let maxOutput = try optionalInt(request, key: "maxOutputTokens") {
-            if maxOutput < 0 {
-                throw RPCValidationError.invalidArgument("maxOutputTokens must be >= 0")
+            if maxOutput <= 0 {
+                throw RPCValidationError.invalidArgument("maxOutputTokens must be > 0")
             }
             settings.maxOutputTokens = maxOutput
         }
@@ -1375,8 +1446,8 @@ final class Service: NSObject, ServiceProtocol {
             settings.temperature = temperature
         }
         if let maxOutput = try optionalInt(request, key: "maxOutputTokens") {
-            if maxOutput < 0 {
-                throw RPCValidationError.invalidArgument("maxOutputTokens must be >= 0")
+            if maxOutput <= 0 {
+                throw RPCValidationError.invalidArgument("maxOutputTokens must be > 0")
             }
             settings.maxOutputTokens = maxOutput
         }
@@ -1737,6 +1808,11 @@ private final class ConnectionLifecycle: @unchecked Sendable {
         hasEnded = true
         return connectionID
     }
+}
+
+private struct StreamAttemptFailure: Error {
+    let underlying: Error
+    let didEmitStarted: Bool
 }
 
 private enum RPCValidationError: Error, LocalizedError {

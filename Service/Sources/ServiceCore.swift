@@ -12,6 +12,8 @@ enum ServiceCoreError: Error, LocalizedError {
     case noRouteCandidate(String)
     case routeCandidateProviderNotFound(routeID: String, providerID: Int32, modelID: String)
     case routeCandidateModelNotEnabled(routeID: String, providerID: Int32, modelID: String)
+    case missingConnectionForCaller
+    case streamOwnershipViolation
 
     var errorDescription: String? {
         switch self {
@@ -35,6 +37,10 @@ enum ServiceCoreError: Error, LocalizedError {
             return "Route \(routeID) references missing provider \(providerID) for model \(modelID)"
         case .routeCandidateModelNotEnabled(let routeID, let providerID, let modelID):
             return "Route \(routeID) candidate provider \(providerID) does not enable model \(modelID)"
+        case .missingConnectionForCaller:
+            return "Missing registered connection for caller."
+        case .streamOwnershipViolation:
+            return "Only the caller that started the stream can cancel it."
         }
     }
 }
@@ -350,8 +356,10 @@ actor ServiceCore {
         return id
     }
 
-    func registerActiveStream(requestID: Int64, caller: XPCCaller) {
-        guard let connectionID = matchingConnectionID(for: caller) else { return }
+    func registerActiveStream(requestID: Int64, caller: XPCCaller) throws {
+        guard let connectionID = matchingConnectionID(for: caller) else {
+            throw ServiceCoreError.missingConnectionForCaller
+        }
         streamOwnerConnectionByRequestID[requestID] = connectionID
 
         if var connection = connectionsByID[connectionID] {
@@ -392,6 +400,18 @@ actor ServiceCore {
             }
         }
         return nil
+    }
+
+    func ensureStreamOwnership(requestID: Int64, caller: XPCCaller) throws {
+        guard let ownerConnectionID = streamOwnerConnectionByRequestID[requestID] else {
+            return
+        }
+        guard let callerConnectionID = matchingConnectionID(for: caller) else {
+            throw ServiceCoreError.missingConnectionForCaller
+        }
+        guard ownerConnectionID == callerConnectionID else {
+            throw ServiceCoreError.streamOwnershipViolation
+        }
     }
 
     // MARK: Authorization

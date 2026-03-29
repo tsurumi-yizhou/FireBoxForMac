@@ -23,7 +23,7 @@ enum ProviderType: String, CaseIterable, Codable, Sendable {
 }
 
 enum RouteStrategy: String, CaseIterable, Codable, Sendable {
-    case ordered = "Ordered"
+    case failover = "Failover"
     case random = "Random"
 
     static func parse(_ raw: String) -> RouteStrategy? {
@@ -32,7 +32,9 @@ enum RouteStrategy: String, CaseIterable, Codable, Sendable {
         }
         switch raw.lowercased() {
         case "ordered":
-            return .ordered
+            return .failover
+        case "failover":
+            return .failover
         case "random":
             return .random
         default:

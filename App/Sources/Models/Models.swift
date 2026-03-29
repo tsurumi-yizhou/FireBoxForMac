@@ -43,15 +43,15 @@ enum ProviderType: String, CaseIterable, Identifiable, Codable {
 }
 
 enum RouteStrategy: String, CaseIterable, Identifiable, Codable {
-    case ordered = "Ordered"
+    case failover = "Failover"
     case random = "Random"
 
     var id: String { rawValue }
 
     var localizedName: String {
         switch self {
-        case .ordered:
-            return String(localized: "app.routeStrategy.ordered")
+        case .failover:
+            return "Failover"
         case .random:
             return String(localized: "app.routeStrategy.random")
         }
@@ -59,8 +59,8 @@ enum RouteStrategy: String, CaseIterable, Identifiable, Codable {
 
     var clientValue: Client.RouteStrategy {
         switch self {
-        case .ordered:
-            return .ordered
+        case .failover:
+            return .failover
         case .random:
             return .random
         }
@@ -68,8 +68,8 @@ enum RouteStrategy: String, CaseIterable, Identifiable, Codable {
 
     init(clientValue: Client.RouteStrategy) {
         switch clientValue {
-        case .ordered:
-            self = .ordered
+        case .failover:
+            self = .failover
         case .random:
             self = .random
         }
@@ -146,7 +146,7 @@ final class RouteRule: Identifiable {
         id: UUID = UUID(),
         serviceID: Int32 = 0,
         routeId: String = "",
-        strategy: RouteStrategy = .ordered,
+        strategy: RouteStrategy = .failover,
         capabilityReasoning: Bool = false,
         capabilityToolCalling: Bool = false,
         inputImage: Bool = false,
